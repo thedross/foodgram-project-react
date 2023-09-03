@@ -9,7 +9,7 @@ services:
   db:
     image: postgres:13
     restart: always
-    env_file: ../.env
+    env_file: ./.env
     volumes:
       - pg_data:/var/lib/postgresql/data/
 
@@ -22,7 +22,7 @@ services:
     depends_on:
       - db
     env_file:
-      - ../.env
+      - ./.env
 
   frontend:
     image: thedrossabaza/foodgram_frontend
@@ -31,7 +31,7 @@ services:
   nginx:
     image: nginx:1.19.3
     ports:
-      - "80:80"
+      - "9000:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
