@@ -30,9 +30,9 @@ class FoodgramUserSerializer(UserSerializer):
         user = self.context.get('request').user
         return (user.is_authenticated
                 and Follow.objects.filter(
-                        user=user,
-                        following=obj
-                        ).exists()
+                    user=user,
+                    following=obj
+                ).exists()
                 )
 
 
@@ -134,7 +134,7 @@ class FollowSerializer(FoodgramUserSerializer):
             recipes,
             many=True,
             read_only=True
-            )
+        )
         return serializer.data
 
     def get_recipes_count(self, obj):

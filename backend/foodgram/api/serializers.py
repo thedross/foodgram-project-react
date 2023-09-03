@@ -12,7 +12,7 @@ from recipes.models import (
     RecipeIngredient,
     ShoppingCart,
     Tag
-    )
+)
 from users.serializers import UserSerializer
 
 
@@ -97,7 +97,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             'image',
             'text',
             'cooking_time'
-            )
+        )
 
     def validate_ingredients(self, value):
         if not value:
@@ -109,8 +109,8 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         # Need to use key because OrderedDict is not hashable
         if len(ingredients) != len(set(ingredients)):
             raise serializers.ValidationError(
-                    'Ingredients can\'t repeat'
-                    )
+                'Ingredients can\'t repeat'
+            )
         return value
 
     def validate_tags(self, value):
@@ -127,7 +127,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 ingredient=get_object_or_404(
                     Ingredient,
                     pk=ingredient.get('id')
-                    ),
+                ),
                 amount=ingredient.get('amount')
             ))
         RecipeIngredient.objects.bulk_create(ingredients_list)
@@ -217,21 +217,21 @@ class GetRecipeDetailSerializer(serializers.ModelSerializer):
         return IngredientsDetailForRecipeSerializer(
             ingredients,
             many=True
-            ).data
+        ).data
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
         return (
             user.is_authenticated
             and user.favorite.filter(recipe=obj).exists()
-            )
+        )
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context.get('request').user
         return (
             user.is_authenticated
             and user.cart.filter(recipe=obj).exists()
-            )
+        )
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):

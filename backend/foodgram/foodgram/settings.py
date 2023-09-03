@@ -1,16 +1,14 @@
+import os
 from pathlib import Path
-
-from datetime import timedelta
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SECRET_KEY = os.getenv('SECRET_KEY', '12345')
 
-SECRET_KEY = 'django-insecure-oee0-i=xn+1mky*-6r5(#64(q20-dk@)*ib$%adfm!2y&#aazq'
+DEBUG = bool(os.getenv('DEBUG', True))
 
-DEBUG = True
-
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -63,8 +61,12 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
+        'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', 5432)
     }
 }
 
@@ -116,12 +118,11 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_FILTER_BACKENDS': [
-       'django_filters.rest_framework.DjangoFilterBackend'
+        'django_filters.rest_framework.DjangoFilterBackend'
     ],
 
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'api.paginators.CustomPaginationLimit',
 
-    # 'PAGE_SIZE': PAGINATION_INDICATOR, нужно или нет?
 }
 
 DJOSER = {
@@ -139,6 +140,10 @@ DJOSER = {
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'collected_static'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = '/var/www/foodgram/media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

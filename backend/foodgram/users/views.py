@@ -34,13 +34,13 @@ class FoodgramUsersViewSet(UserViewSet):
         return Response(FoodgramUserSerializer(
             request.user,
             context={'request': request}
-            ).data
+        ).data
         )
 
     @action(
-            detail=True,
-            methods=['POST', 'DELETE'],
-            permission_classes=[permissions.IsAuthenticated, ]
+        detail=True,
+        methods=['POST', 'DELETE'],
+        permission_classes=[permissions.IsAuthenticated, ]
     )
     def subscribe(self, request, **kwargs):
         user = self.request.user
@@ -51,7 +51,7 @@ class FoodgramUsersViewSet(UserViewSet):
                 following,
                 data={'empty': None},
                 context={'request': request}
-                )
+            )
             serializer.is_valid(raise_exception=True)
             Follow.objects.create(user=user, following=following)
 
@@ -66,7 +66,7 @@ class FoodgramUsersViewSet(UserViewSet):
                 return Response(
                     'Нельзя отписаться, так как вы не подписаны',
                     status=status.HTTP_400_BAD_REQUEST
-                    )
+                )
             follow.delete()
             return Response(
                 'Успешно отписались',

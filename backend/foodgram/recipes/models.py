@@ -47,7 +47,7 @@ class Recipe(models.Model):
     )
     text = models.TextField(
         verbose_name='текст рецепта',
-        )
+    )
     ingredients = models.ManyToManyField(
         'Ingredient',
         through='RecipeIngredient',
@@ -103,7 +103,7 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         'Recipe',
         on_delete=models.CASCADE,
-        )
+    )
     ingredient = models.ForeignKey(
         'Ingredient',
         on_delete=models.CASCADE,
@@ -114,7 +114,7 @@ class RecipeIngredient(models.Model):
         validators=[MinValueValidator(
             limit_value=1,  # убрать магическое число
             message='Количество ингредиента не может быть меньше 1'
-            )
+        )
         ]
     )
 

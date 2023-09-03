@@ -8,7 +8,7 @@ router.register(
     r'ingredients',
     IngredientViewSet,
     basename='ingredient'
-    )
+)
 router.register(r'recipes', RecipeViewset, basename='recipe')
 
 urlpatterns = [
