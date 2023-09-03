@@ -1,14 +1,21 @@
 from django.contrib.auth import get_user_model
 from django.db.models import F, Sum
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from api.filters import RecipeFilter
-from api.permissions import IsAuthorOrReadOnly
-from api.paginators import CustomPaginationLimit
 
+from api.filters import RecipeFilter
+from api.paginators import CustomPaginationLimit
+from api.permissions import IsAuthorOrReadOnly
+from api.serializers import (
+    CreateRecipeSerializer,
+    GetRecipeDetailSerializer,
+    IngredientSerializer,
+    RecipeMinifiedSerializer,
+    TagSerializer
+)
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -18,13 +25,6 @@ from recipes.models import (
     Tag
 )
 
-from api.serializers import (
-    CreateRecipeSerializer,
-    IngredientSerializer,
-    GetRecipeDetailSerializer,
-    RecipeMinifiedSerializer,
-    TagSerializer
-)
 
 User = get_user_model()
 

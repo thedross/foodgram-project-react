@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.contrib.admin import ModelAdmin
 
 from recipes.models import (
     Favorite,
@@ -12,7 +11,7 @@ from recipes.models import (
 
 
 @admin.register(Recipe)
-class RecipeAdmin(ModelAdmin):
+class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'author',
