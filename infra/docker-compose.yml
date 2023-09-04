@@ -14,7 +14,7 @@ services:
       - pg_data:/var/lib/postgresql/data/
 
   backend:
-    image: thedrossabaza/foodgram_backend
+    image: thedrossabaza/foodgram_backend:latest
     restart: always
     volumes:
       - static:/app/static/
@@ -25,9 +25,10 @@ services:
       - ./.env
 
   frontend:
-    image: thedrossabaza/foodgram_frontend
+    image: thedrossabaza/foodgram_frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
+
   nginx:
     image: nginx:1.19.3
     ports:
