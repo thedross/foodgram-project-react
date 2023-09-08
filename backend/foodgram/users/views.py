@@ -29,7 +29,7 @@ class FoodgramUsersViewSet(UserViewSet):
     @action(
         detail=True,
         methods=['POST'],
-        permission_classes=[permissions.IsAuthenticated,],
+        permission_classes=[permissions.IsAuthenticated, ],
         serializer_class=FollowSerializer
     )
     def subscribe(self, request, **kwargs):

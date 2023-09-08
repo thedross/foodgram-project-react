@@ -135,12 +135,13 @@ REST_FRAMEWORK = {
 
 }
 
+
 DJOSER = {
     'USER_AUTHENTICATION_RULE': 'djoser.auth.TokenAuthenticationRule',
     'SERIALIZERS': {
-        'user_create': 'djoser.serializers.UserCreateSerializer',
-        'user': 'users.serializers.FoodgramUserSerializer',
-        'current_user': 'users.serializers.FoodgramUserSerializer',
+        # 'user_create': 'djoser.serializers.UserCreateSerializer',
+        'user': 'api.serializers.FoodgramUserSerializer',
+        'current_user': 'api.serializers.FoodgramUserSerializer',
     },
     'HIDE_USERS': False,
 }
