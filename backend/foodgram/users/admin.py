@@ -11,7 +11,6 @@ class FoodgramUserAdmin(UserAdmin):
         'username',
         'first_name',
         'last_name',
-        'role',
     )
     search_fields = (
         'email',
@@ -19,8 +18,13 @@ class FoodgramUserAdmin(UserAdmin):
         'last_name'
     )
     ordering = ('email',)
-    list_editable = ('role',)
     list_filter = ('email', 'username',)
+
+    @admin.display(description='Рецепты')
+    def recipes(self, obj):
+        # Count new field
+        recipes = obj.recipes.all()
+        return ', '.join([recipe.name for recipe in recipes])
 
 
 @admin.register(Follow)

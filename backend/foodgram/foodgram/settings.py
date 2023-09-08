@@ -10,9 +10,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', '12345')
 
-DEBUG = bool(os.getenv('DEBUG', True))
+DEBUG = os.getenv('DEBUG', default=False) == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -74,6 +74,12 @@ DATABASES = {
     }
 }
 
+if os.getenv('SQLITE', False):
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -132,7 +138,7 @@ REST_FRAMEWORK = {
 DJOSER = {
     'USER_AUTHENTICATION_RULE': 'djoser.auth.TokenAuthenticationRule',
     'SERIALIZERS': {
-        'user_create': 'users.serializers.FoodgramCreateUserSerializer',
+        'user_create': 'djoser.serializers.UserCreateSerializer',
         'user': 'users.serializers.FoodgramUserSerializer',
         'current_user': 'users.serializers.FoodgramUserSerializer',
     },

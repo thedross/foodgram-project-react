@@ -1,24 +1,20 @@
-from django.contrib.auth import get_user_model
 from django_filters.rest_framework import FilterSet, filters
 
-from recipes.models import Recipe, Tag
-
-User = get_user_model()
+from recipes.models import Ingredient, Recipe
+# from users.models import FoodgramUser
 
 
 class RecipeFilter(FilterSet):
-    """Filter for Recipe"""
+    """Фильтр для рецептов"""
+
     is_in_shopping_cart = filters.BooleanFilter(
         method='method_is_in_shopping_cart')
     is_favorited = filters.BooleanFilter(
         method='method_is_favorited')
-    author = filters.ModelChoiceFilter(
-        queryset=User.objects.all())
-    tags = filters.ModelMultipleChoiceFilter(
+    tags = filters.AllValuesMultipleFilter(
         field_name='tags__slug',
-        to_field_name='slug',
-        queryset=Tag.objects.all(),
-    )
+        lookup_expr='in'
+    )  # In вместо exact по дефолту ищет хотя бы одному совпадению с тегом.
 
     class Meta:
         model = Recipe
@@ -38,3 +34,13 @@ class RecipeFilter(FilterSet):
         if self.request.user.is_authenticated and value:
             return queryset.filter(cart__user=self.request.user)
         return queryset
+
+
+class IngredientsFilter(FilterSet):
+    """Фильтр для ингредиентов"""
+
+    name = filters.CharFilter(lookup_expr='startswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)

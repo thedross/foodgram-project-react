@@ -1,4 +1,3 @@
-from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import filters, permissions, status
@@ -6,71 +5,66 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.paginators import CustomPaginationLimit
-from users.models import Follow
-from users.serializers import FollowSerializer, FoodgramUserSerializer
-
-
-User = get_user_model()
+from users.models import FoodgramUser, Follow
+from api.serializers import FollowSerializer, FoodgramUserSerializer
 
 
 class FoodgramUsersViewSet(UserViewSet):
     """
     Вьюсет модели FoodgramUser.
     """
-    queryset = User.objects.all()
+
+    queryset = FoodgramUser.objects.all()
     serializer_class = FoodgramUserSerializer
     filter_backends = (filters.SearchFilter, )
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     lookup_field = 'id'
     pagination_class = CustomPaginationLimit
 
-    @action(
-        detail=False,
-        methods=['GET'],
-        permission_classes=[permissions.IsAuthenticated, ]
-    )
-    def me(self, request, *args, **kwargs):
-        return Response(FoodgramUserSerializer(
-            request.user,
-            context={'request': request}
-        ).data
-        )
+    def get_permissions(self):
+        if self.action == 'me':
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
 
     @action(
         detail=True,
-        methods=['POST', 'DELETE'],
+        methods=['POST'],
         permission_classes=[permissions.IsAuthenticated, ]
     )
     def subscribe(self, request, **kwargs):
-        user = self.request.user
         # 404 if no author with id given
-        following = get_object_or_404(User, id=self.kwargs.get('id'))
-        if request.method == 'POST':
-            serializer = FollowSerializer(
-                following,
-                data={'empty': None},
-                context={'request': request}
-            )
-            serializer.is_valid(raise_exception=True)
-            Follow.objects.create(user=user, following=following)
+        following = get_object_or_404(FoodgramUser, id=self.kwargs.get('id'))
 
-            serializer = FollowSerializer(
-                following,
-                context={'request': request}
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            follow = Follow.objects.filter(user=user, following=following)
-            if not follow.exists():
-                return Response(
-                    'Нельзя отписаться, так как вы не подписаны',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            follow.delete()
+        serializer = FollowSerializer(
+            following,
+            data={'empty': None},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        serializer = FollowSerializer(
+            following,
+            context={'request': request}
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @subscribe.mapping.delete
+    def unsubscribe(self, request, **kwargs):
+        follow = Follow.objects.filter(
+            user=request.user,
+            following=self.kwargs.get('id')
+        )
+        if not follow.exists():
             return Response(
-                'Успешно отписались',
-                status=status.HTTP_204_NO_CONTENT
+                'Нельзя отписаться, так как вы не подписаны',
+                status=status.HTTP_400_BAD_REQUEST
             )
+        follow.delete()
+        return Response(
+            'Успешно отписались',
+            status=status.HTTP_204_NO_CONTENT
+        )
 
     @action(methods=['GET'],
             detail=False,
@@ -81,7 +75,7 @@ class FoodgramUsersViewSet(UserViewSet):
         Uses FollowSerializer. Can take arguments: limit, recipes_limit
         """
         user = request.user
-        subscriptions = User.objects.filter(following__user=user)
+        subscriptions = FoodgramUser.objects.filter(following__user=user)
         page = self.paginate_queryset(subscriptions)
         serializer = FollowSerializer(
             page,

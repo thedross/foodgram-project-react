@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 
 import users.constants as const
@@ -9,14 +10,21 @@ class FoodgramUser(AbstractUser):
     '''
     Класс для кастомной модели Юзер для проекта Foodgram.
     Поле email будет использоваться вместо поля username.
-    Поле username может быть пустым на этапе создания.'''
+    Поле username может быть пустым на этапе создания.
+    '''
+
     username_validator = UnicodeUsernameValidator
+
+    def validate_username(self, value):
+        if value == "me":
+            raise ValidationError("Никнейм 'me' недопустим")
+
     username = models.CharField(
         verbose_name='Никнейм',
         max_length=const.MAX_NAME_LENGTH,
         unique=True,
         null=True,
-        validators=[username_validator]
+        validators=[username_validator, validate_username]
     )
     email = models.EmailField(
         verbose_name='e-mail',
@@ -31,18 +39,12 @@ class FoodgramUser(AbstractUser):
         verbose_name='Фамилия',
         max_length=const.MAX_NAME_LENGTH,
     )
-    role = models.CharField(
-        verbose_name='Роль',
-        max_length=150,
-        choices=const.CHOICES_ROLE,
-        default=const.USER,
-    )
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'last_name', 'first_name']
+    REQUIRED_FIELDS = ('username', 'last_name', 'first_name')
 
     @property
     def is_admin(self):
-        return (self.role == const.ADMIN) or self.is_staff or self.is_superuser
+        return self.is_staff or self.is_superuser
 
     class Meta:
         ordering = ('email', 'username',)
@@ -58,6 +60,7 @@ class Follow(models.Model):
     Класс подписки одного пользователя на другого.
     Подписка на самого себя запрещена
     """
+
     user = models.ForeignKey(
         FoodgramUser,
         on_delete=models.CASCADE,
@@ -77,11 +80,11 @@ class Follow(models.Model):
         constraints = [
             models.UniqueConstraint(
                 name='%(app_label)s_%(class)s_unique_relationships',
-                fields=["user", "following"],
+                fields=['user', 'following'],
             ),
             models.CheckConstraint(
                 name='%(app_label)s_%(class)s_prevent_self_follow',
-                check=~models.Q(user=models.F("following")),
+                check=~models.Q(user=models.F('following')),
             ),
         ]
 

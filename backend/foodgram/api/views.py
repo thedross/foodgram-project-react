@@ -1,19 +1,20 @@
-from django.contrib.auth import get_user_model
+import tempfile
+
 from django.db.models import F, Sum
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
+from django.http import FileResponse
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.filters import RecipeFilter
-from api.paginators import CustomPaginationLimit
+from api.filters import IngredientsFilter, RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (
     CreateRecipeSerializer,
+    FavoriteSerializer,
     GetRecipeDetailSerializer,
     IngredientSerializer,
-    RecipeMinifiedSerializer,
+    # RecipeMinifiedSerializer,
+    ShoppingCartSerializer,
     TagSerializer
 )
 from recipes.models import (
@@ -22,123 +23,120 @@ from recipes.models import (
     Recipe,
     RecipeIngredient,
     ShoppingCart,
-    Tag
+    Tag,
 )
 
 
-User = get_user_model()
-
-
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """Viewset for Tag. Only GET method."""
+    """Вьюсет для модели Тег"""
+
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    # lookup_field = 'id'
+    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """Viewset for Ingredients"""
+    """Вьюсет для модели Ингредиент"""
+
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        return queryset
+    pagination_class = None
+    filterset_class = IngredientsFilter
 
 
 class RecipeViewset(viewsets.ModelViewSet):
     """
-    Recipe, Favorite, ShoppingCart.
-    Get recipe info. GET.
-    Create or update recipe. POST.
-    Add or delete from favorite.
-    Add or delete from shoppingcart.
-    Downloading file with ingredients from shoppingcart.
+    Класс для работы с рецептами.
+    Добавлению в избранное и корзину.
+    Скачивание ингредиентов из корзины.
+    Остальные действия с рецептами.
     """
-    queryset = Recipe.objects.all()
+
+    queryset = Recipe.objects.all().select_related(
+        'author'
+    ).prefetch_related(
+        'ingredients',
+        'tags'
+    )
     permission_classes = [IsAuthorOrReadOnly]
     filterset_class = RecipeFilter
-    pagination_class = CustomPaginationLimit
+
+    @staticmethod
+    def favorite_or_cart_save(request, pk, serializer_choice):
+        user = request.user
+        data = {'user': user.id, 'recipe': pk}
+        serializer = serializer_choice(
+            data=data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
-        methods=['POST', 'DELETE'],
+        methods=['POST'],
         detail=True,
         permission_classes=[permissions.IsAuthenticated]
     )
     def favorite(self, request, pk):
-        recipe = get_object_or_404(Recipe, id=pk)
-        recipe_favorite = Favorite.objects.filter(
-            recipe=recipe, user=request.user
-        )
-        if request.method == 'POST':
-            if recipe_favorite.exists():
-                return Response(
-                    'Рецепт уже в избранном',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            Favorite.objects.create(recipe=recipe, user=request.user)
-            return Response(
-                RecipeMinifiedSerializer(recipe).data,
-                status=status.HTTP_201_CREATED
-            )
-        if request.method == 'DELETE':
-            if recipe_favorite.exists():
-                recipe_favorite.delete()
-                return Response(
-                    'Рецепт удален из избранного',
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            return Response(
-                'Рецепта нет в избранном',
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        self.favorite_or_cart_save(request, pk, FavoriteSerializer)
 
-    @action(methods=['POST', 'DELETE'],
+    @favorite.mapping.delete
+    def unfavorite(self, request, pk):
+        """
+        Потрясающе. mapping.delete для декорирования запросов
+        на удаление подписки.
+        """
+        recipe_favorite = Favorite.objects.filter(user=request.user, recipe=pk)
+        if recipe_favorite.exists():
+            recipe_favorite.delete()
+            return Response(
+                'Рецепт удален из избранного',
+                status=status.HTTP_204_NO_CONTENT
+            )
+        return Response(
+            'Рецепта нет в избранном',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(methods=['POST'],
             detail=True,
             permission_classes=[permissions.IsAuthenticated])
     def shopping_cart(self, request, pk):
-        recipe = get_object_or_404(Recipe, id=pk)
-        recipe_cart = ShoppingCart.objects.filter(
-            recipe=recipe, user=request.user
+        self.favorite_or_cart_save(request, pk, ShoppingCartSerializer)
+
+    @shopping_cart.mapping.delete
+    def delete_from_shopping_cart(self, request, pk):
+        recipe_cart = ShoppingCart.objects.filter(user=request.user, recipe=pk)
+        if recipe_cart.exists():
+            recipe_cart.delete()
+            return Response(
+                'Рецепт удален из корзины',
+                status=status.HTTP_204_NO_CONTENT
+            )
+        return Response(
+            'Рецепта нет в корзине',
+            status=status.HTTP_400_BAD_REQUEST
         )
-        if request.method == 'POST':
-            if recipe_cart.exists():
-                return Response(
-                    'Рецепт уже в корзине', status=status.HTTP_400_BAD_REQUEST
-                )
-            ShoppingCart.objects.create(recipe=recipe, user=request.user)
-            return Response(
-                RecipeMinifiedSerializer(recipe).data,
-                status=status.HTTP_201_CREATED
-            )
-        if request.method == 'DELETE':
-            if recipe_cart.exists():
-                recipe_cart.delete()
-                return Response(
-                    'Рецепт удален из корзины',
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            return Response(
-                'Рецепта нет в корзине',
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
     @action(methods=['GET'],
             permission_classes=[permissions.IsAuthenticated],
             detail=False)
     def download_shopping_cart(self, request):
-        """Save shopping cart to file"""
-        user = self.request.user
+        """Подготовка queryset и вызов функции на скачивание."""
+        user = request.user
         ingredients = RecipeIngredient.objects.filter(
             recipe__cart__user=user
         ).values(
             name=F('ingredient__name'),
             measurement_unit=F('ingredient__measurement_unit')
-        ).annotate(amount=Sum('amount'))
+        ).annotate(amount=Sum('amount')).order_by('name')
 
+        self.making_file_with_ingredients(user, ingredients)
+
+    @staticmethod
+    def making_file_with_ingredients(user, ingredients):
+        """Создаем и скачиваем файл с ингредиентами."""
         ingredients_list = []
         for ingredient in ingredients:
             ingredients_list.append(
@@ -150,9 +148,13 @@ class RecipeViewset(viewsets.ModelViewSet):
         final_to_buy = ('Ваш список ингредиентов для '
                         'создания всех рецептов из корзины.\n\n')
         final_to_buy += '\n'.join(ingredients_list)
-        file_name = f'{user.username}_shopping_list_ingredients.txt'
-        response = HttpResponse(final_to_buy, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename={file_name}'
+        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+            # Записываем во временный файл
+            temp_file.write(final_to_buy.encode())
+            temp_file.seek(0)
+        response = FileResponse(temp_file, content_type='text/plain')
+        filename = f'{user.username}_shopping_list_ingredients.txt'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
         return response
 

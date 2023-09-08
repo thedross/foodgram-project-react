@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.auth.models import Group
+from django.utils.safestring import mark_safe
 
 from recipes.models import (
     Favorite,
@@ -10,25 +12,36 @@ from recipes.models import (
 )
 
 
+class RecipeIngredientsInLine(admin.TabularInline):
+    model = Recipe.ingredients.through
+    extra = 1
+
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'author',
+        'image'
     )
     search_fields = (
         'email',
         'first_name',
         'last_name'
     )
+    inlines = (RecipeIngredientsInLine,)
     ordering = ('name',)
     list_filter = ('author', 'name', 'tags')
     readonly_fields = ('recipe_is_favorite',)
 
+    @admin.display(description='Рецепт в избранном')
     def recipe_is_favorite(self, obj):
         # Count new field
         return obj.favorite.count()
-    recipe_is_favorite.short_description = 'Рецепт в избранном'
+
+    @admin.display(description='картинка')
+    def image(self, obj):
+        return mark_safe(f'<img src={obj.image.url} width="80" height="60">')
 
 
 @admin.register(RecipeIngredient)
@@ -59,3 +72,6 @@ class FavoriteAdmin(admin.ModelAdmin):
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
+
+
+admin.site.unregister(Group)
