@@ -13,7 +13,7 @@ from api.serializers import (
     FavoriteSerializer,
     GetRecipeDetailSerializer,
     IngredientSerializer,
-    # RecipeMinifiedSerializer,
+    RecipeMinifiedSerializer,
     ShoppingCartSerializer,
     TagSerializer
 )
@@ -83,6 +83,7 @@ class RecipeViewset(viewsets.ModelViewSet):
     @staticmethod
     def favorite_or_cart_save(request, pk, serializer_choice):
         user = request.user
+        recipe = Recipe.objects.get(pk=pk)
         data = {'user': user.id, 'recipe': pk}
         serializer = serializer_choice(
             data=data,
@@ -90,6 +91,7 @@ class RecipeViewset(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        serializer = RecipeMinifiedSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -145,7 +147,7 @@ class RecipeViewset(viewsets.ModelViewSet):
         """Подготовка queryset и вызов функции на скачивание."""
         user = request.user
         ingredients = RecipeIngredient.objects.filter(
-            recipe__cart__user=user
+            recipe__shoppingcart__user=user
         ).values(
             name=F('ingredient__name'),
             measurement_unit=F('ingredient__measurement_unit')

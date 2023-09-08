@@ -211,8 +211,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     def validate_tags(self, value):
         if not value:
             raise serializers.ValidationError('Add at least one tag!')
-        tags = [tag['id'] for tag in value]
-        if len(tags) != len(set(tags)):
+        if len(value) != len(set(value)):
             raise serializers.ValidationError('Tags can\'t repeat!')
         return value
 

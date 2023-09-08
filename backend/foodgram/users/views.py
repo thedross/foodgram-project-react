@@ -6,7 +6,11 @@ from rest_framework.response import Response
 
 from api.paginators import CustomPaginationLimit
 from users.models import FoodgramUser, Follow
-from api.serializers import FollowSerializer, FoodgramUserSerializer
+from api.serializers import (
+    FollowModelSerializer,
+    FollowSerializer,
+    FoodgramUserSerializer
+)
 
 
 class FoodgramUsersViewSet(UserViewSet):
@@ -36,7 +40,7 @@ class FoodgramUsersViewSet(UserViewSet):
         # 404 if no author with id given
         following = get_object_or_404(FoodgramUser, id=self.kwargs.get('id'))
 
-        serializer = FollowSerializer(
+        serializer = FollowModelSerializer(
             following,
             data={'empty': None},
             context={'request': request}
