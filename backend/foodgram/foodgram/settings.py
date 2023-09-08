@@ -74,7 +74,7 @@ DATABASES = {
     }
 }
 
-if os.getenv('SQLITE', False):
+if os.getenv('SQLITE', ''):
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',

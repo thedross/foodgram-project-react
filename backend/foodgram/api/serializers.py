@@ -1,7 +1,7 @@
 # api.serializers
 # Все сериализаторы, кроме User и Follow
 from django.core.validators import MinValueValidator, MaxValueValidator
-from djoser.serializers import UserSerializer
+# from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status
 from foodgram.constants import MAX_AMOUNT_INGREDIENT_VALUE, MIN_VALUE
@@ -284,14 +284,14 @@ class GetRecipeDetailSerializer(serializers.ModelSerializer):
     """
 
     tags = TagSerializer(many=True, read_only=True)
-    author = UserSerializer(read_only=True)
+    author = FoodgramUserSerializer(read_only=True)
     ingredients = IngredientsDetailForRecipeSerializer(
         many=True,
         read_only=True,
         source='recipe_ingredients')
     image = Base64ImageField()
-    is_favorited = serializers.SerializerMethodField(read_only=True)
-    is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
+    is_favorited = serializers.BooleanField(read_only=True)
+    is_in_shopping_cart = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Recipe
@@ -319,19 +319,19 @@ class GetRecipeDetailSerializer(serializers.ModelSerializer):
             many=True
         ).data
 
-    def get_is_favorited(self, obj):
-        user = self.context.get('request').user
-        return (
-            user.is_authenticated
-            and user.favorite.filter(recipe=obj).exists()
-        )
+    # def get_is_favorited(self, obj):
+    #     user = self.context.get('request').user
+    #     return (
+    #         user.is_authenticated
+    #         and user.favorite.filter(recipe=obj).exists()
+    #     )
 
-    def get_is_in_shopping_cart(self, obj):
-        user = self.context.get('request').user
-        return (
-            user.is_authenticated
-            and user.cart.filter(recipe=obj).exists()
-        )
+    # def get_is_in_shopping_cart(self, obj):
+    #     user = self.context.get('request').user
+    #     return (
+    #         user.is_authenticated
+    #         and user.cart.filter(recipe=obj).exists()
+    #     )
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):

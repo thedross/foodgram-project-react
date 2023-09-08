@@ -1,6 +1,6 @@
 import tempfile
 
-from django.db.models import F, Sum
+from django.db.models import Exists, F, OuterRef, Sum
 from django.http import FileResponse
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -52,14 +52,33 @@ class RecipeViewset(viewsets.ModelViewSet):
     Остальные действия с рецептами.
     """
 
-    queryset = Recipe.objects.all().select_related(
-        'author'
-    ).prefetch_related(
-        'ingredients',
-        'tags'
-    )
     permission_classes = [IsAuthorOrReadOnly]
     filterset_class = RecipeFilter
+
+    def get_queryset(self):
+        """Самый длинный запрос в жизни."""
+        user_id = self.request.user.pk
+        queryset = Recipe.objects.annotate(
+            is_favorited=Exists(
+                Favorite.objects.filter(
+                    recipe__pk=OuterRef('pk'),
+                    user_id=user_id,
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                ShoppingCart.objects.filter(
+                    recipe__pk=OuterRef('pk'),
+                    user_id=user_id,
+                )
+            ),
+        ).select_related(
+            'author'
+        ).prefetch_related(
+            'ingredients',
+            'tags'
+        )
+
+        return queryset
 
     @staticmethod
     def favorite_or_cart_save(request, pk, serializer_choice):
