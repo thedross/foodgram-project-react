@@ -1,4 +1,11 @@
 ## Проект **Foodgram** - это социальная сеть для обмена рецептами.
+Ссылка на сайт без https, только http:
+[foodgram](http://fedorthedross.ddnsking.com/)
+
+логин админа:
+admin@admin.admin
+пароль:
+admin
 
 ## Описание
 
@@ -75,7 +82,6 @@ ssh username@server_ip
 
 Пример файла .env
 ```
-DB_ENGINE=django.db.backends.postgresql
 DB_NAME=postgres
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres

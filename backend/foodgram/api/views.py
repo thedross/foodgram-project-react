@@ -100,7 +100,7 @@ class RecipeViewset(viewsets.ModelViewSet):
         permission_classes=[permissions.IsAuthenticated]
     )
     def favorite(self, request, pk):
-        self.favorite_or_cart_save(request, pk, FavoriteSerializer)
+        return self.favorite_or_cart_save(request, pk, FavoriteSerializer)
 
     @favorite.mapping.delete
     def unfavorite(self, request, pk):
@@ -124,7 +124,7 @@ class RecipeViewset(viewsets.ModelViewSet):
             detail=True,
             permission_classes=[permissions.IsAuthenticated])
     def shopping_cart(self, request, pk):
-        self.favorite_or_cart_save(request, pk, ShoppingCartSerializer)
+        return self.favorite_or_cart_save(request, pk, ShoppingCartSerializer)
 
     @shopping_cart.mapping.delete
     def delete_from_shopping_cart(self, request, pk):
