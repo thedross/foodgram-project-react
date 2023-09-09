@@ -74,6 +74,11 @@ class RecipeViewset(viewsets.ModelViewSet):
 
         return queryset
 
+    def get_serializer_class(self):
+        if self.action in ('create', 'partial_update'):
+            return CreateRecipeSerializer
+        return GetRecipeDetailSerializer
+
     @staticmethod
     def favorite_or_cart_save(request, pk, serializer_choice):
         user = request.user
@@ -166,11 +171,6 @@ class RecipeViewset(viewsets.ModelViewSet):
             filename=f'{user.username}_shopping_list_ingredients.txt',
             content_type='text/plain'
         )
-
-    def get_serializer_class(self):
-        if self.request.method in permissions.SAFE_METHODS:
-            return GetRecipeDetailSerializer
-        return CreateRecipeSerializer
 
 
 class FoodgramUsersViewSet(UserViewSet):
