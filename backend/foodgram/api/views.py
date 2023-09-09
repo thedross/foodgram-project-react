@@ -144,7 +144,7 @@ class RecipeViewset(viewsets.ModelViewSet):
             measurement_unit=F('ingredient__measurement_unit')
         ).annotate(amount=Sum('amount')).order_by('name')
 
-        self.making_file_with_ingredients(user, ingredients)
+        return self.making_file_with_ingredients(user, ingredients)
 
     @staticmethod
     def making_file_with_ingredients(user, ingredients):

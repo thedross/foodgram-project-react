@@ -31,7 +31,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description='Ингредиенты')
     def ingredients_list(self, obj):
-        ingredients = obj.ingredient.all()
+        ingredients = obj.recipe_ingredient.all()
         ingredient_names = [ingredient.name for ingredient in ingredients]
 
         return ', '.join(ingredient_names)
