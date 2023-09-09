@@ -1,5 +1,6 @@
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.db.models import Exists, OuterRef
 from colorfield.fields import ColorField
 
 from foodgram.constants import (
@@ -36,6 +37,26 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name[:MAX_STR_LENGTH]
+
+
+class RecipeQuerySet(models.QuerySet):
+    """Класс для аннотирования queryset."""
+
+    def annotate_recipe(self, user_id):
+        return self.annotate(
+            is_favorited=Exists(
+                Favorite.objects.filter(
+                    recipe__pk=OuterRef('pk'),
+                    user_id=user_id,
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                ShoppingCart.objects.filter(
+                    recipe__pk=OuterRef('pk'),
+                    user_id=user_id,
+                )
+            ),
+        )
 
 
 class Recipe(models.Model):
@@ -90,6 +111,7 @@ class Recipe(models.Model):
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации рецепта',
         auto_now_add=True)
+    objects = RecipeQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Рецепт'
