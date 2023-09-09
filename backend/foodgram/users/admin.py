@@ -11,7 +11,10 @@ class FoodgramUserAdmin(UserAdmin):
         'username',
         'first_name',
         'last_name',
+        'recipes',
+        'followers'
     )
+
     search_fields = (
         'email',
         'first_name',
@@ -23,8 +26,11 @@ class FoodgramUserAdmin(UserAdmin):
     @admin.display(description='Рецепты')
     def recipes(self, obj):
         # Count new field
-        recipes = obj.recipes.all()
-        return ', '.join([recipe.name for recipe in recipes])
+        return ', '.join([recipe.name for recipe in obj.recipes.all()])
+
+    @admin.display(description='Количество подписчиков')
+    def followers(self, obj):
+        return obj.following.count()
 
 
 @admin.register(Follow)

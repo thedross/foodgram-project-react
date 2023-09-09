@@ -1,19 +1,23 @@
 import tempfile
 
+from djoser.views import UserViewSet
 from django.db.models import F, Sum
 from django.http import FileResponse
-from rest_framework import permissions, status, viewsets
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.filters import IngredientsFilter, RecipeFilter
+from api.paginators import CustomPaginationLimit
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (
     CreateRecipeSerializer,
     FavoriteSerializer,
+    FoodgramUserSerializer,
+    FollowModelSerializer,
+    FollowSerializer,
     GetRecipeDetailSerializer,
     IngredientSerializer,
-    RecipeMinifiedSerializer,
     ShoppingCartSerializer,
     TagSerializer
 )
@@ -25,6 +29,7 @@ from recipes.models import (
     ShoppingCart,
     Tag,
 )
+from users.models import FoodgramUser, Follow
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -72,7 +77,6 @@ class RecipeViewset(viewsets.ModelViewSet):
     @staticmethod
     def favorite_or_cart_save(request, pk, serializer_choice):
         user = request.user
-        recipe = Recipe.objects.get(pk=pk)
         data = {'user': user.id, 'recipe': pk}
         serializer = serializer_choice(
             data=data,
@@ -80,8 +84,21 @@ class RecipeViewset(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        serializer = RecipeMinifiedSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def favorite_or_cart_delete(request, pk, model):
+        recipe_user = model.objects.filter(user=request.user, recipe=pk)
+        if recipe_user.exists():
+            recipe_user.delete()
+            return Response(
+                'Связь рецепт-пользователь удалена.',
+                status=status.HTTP_204_NO_CONTENT
+            )
+        return Response(
+            'Свзяь рецепт-пользователь не найдена.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(
         methods=['POST'],
@@ -97,17 +114,7 @@ class RecipeViewset(viewsets.ModelViewSet):
         Потрясающе. mapping.delete для декорирования запросов
         на удаление подписки.
         """
-        recipe_favorite = Favorite.objects.filter(user=request.user, recipe=pk)
-        if recipe_favorite.exists():
-            recipe_favorite.delete()
-            return Response(
-                'Рецепт удален из избранного',
-                status=status.HTTP_204_NO_CONTENT
-            )
-        return Response(
-            'Рецепта нет в избранном',
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return self.favorite_or_cart_delete(request, pk, Favorite)
 
     @action(methods=['POST'],
             detail=True,
@@ -117,17 +124,7 @@ class RecipeViewset(viewsets.ModelViewSet):
 
     @shopping_cart.mapping.delete
     def delete_from_shopping_cart(self, request, pk):
-        recipe_cart = ShoppingCart.objects.filter(user=request.user, recipe=pk)
-        if recipe_cart.exists():
-            recipe_cart.delete()
-            return Response(
-                'Рецепт удален из корзины',
-                status=status.HTTP_204_NO_CONTENT
-            )
-        return Response(
-            'Рецепта нет в корзине',
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return self.favorite_or_cart_delete(request, pk, ShoppingCart)
 
     @action(methods=['GET'],
             permission_classes=[permissions.IsAuthenticated],
@@ -162,13 +159,88 @@ class RecipeViewset(viewsets.ModelViewSet):
             # Записываем во временный файл
             temp_file.write(final_to_buy.encode())
             temp_file.seek(0)
-        response = FileResponse(temp_file, content_type='text/plain')
-        filename = f'{user.username}_shopping_list_ingredients.txt'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
-        return response
+        return FileResponse(
+            temp_file,
+            as_attachment=True,
+            filename=f'{user.username}_shopping_list_ingredients.txt',
+            content_type='text/plain'
+        )
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
             return GetRecipeDetailSerializer
         return CreateRecipeSerializer
+
+
+class FoodgramUsersViewSet(UserViewSet):
+    """
+    Вьюсет модели FoodgramUser.
+    """
+
+    queryset = FoodgramUser.objects.all()
+    serializer_class = FoodgramUserSerializer
+    filter_backends = (filters.SearchFilter, )
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    lookup_field = 'id'
+    pagination_class = CustomPaginationLimit
+
+    def get_permissions(self):
+        if self.action == 'me':
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
+
+    @action(
+        detail=True,
+        methods=['POST'],
+        permission_classes=[permissions.IsAuthenticated, ],
+        serializer_class=FollowSerializer
+    )
+    def subscribe(self, request, **kwargs):
+
+        following = FoodgramUser.objects.get(id=self.kwargs.get('id'))
+
+        serializer = FollowModelSerializer(
+            following,
+            data={'empty': None},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @subscribe.mapping.delete
+    def unsubscribe(self, request, **kwargs):
+        follow = Follow.objects.filter(
+            user=request.user,
+            following=self.kwargs.get('id')
+        )
+        if not follow.exists():
+            return Response(
+                'Нельзя отписаться, так как вы не подписаны',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        follow.delete()
+        return Response(
+            'Успешно отписались',
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+    @action(methods=['GET'],
+            detail=False,
+            permission_classes=[permissions.IsAuthenticated])
+    def subscriptions(self, request):
+        """
+        Method to get subscriprions.
+        Uses FollowSerializer. Can take arguments: limit, recipes_limit
+        """
+        user = request.user
+        subscriptions = FoodgramUser.objects.filter(following__user=user)
+        page = self.paginate_queryset(subscriptions)
+        serializer = FollowSerializer(
+            page,
+            many=True,
+            context={'request': request}
+        )
+        return self.get_paginated_response(serializer.data)

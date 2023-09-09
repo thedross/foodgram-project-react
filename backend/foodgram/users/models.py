@@ -1,9 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
 from django.db import models
 
-import users.constants as const
+import foodgram.constants as const
+from users.validators import FoodgramUserValidator
 
 
 class FoodgramUser(AbstractUser):
@@ -13,18 +13,17 @@ class FoodgramUser(AbstractUser):
     Поле username может быть пустым на этапе создания.
     '''
 
-    username_validator = UnicodeUsernameValidator
-
-    def validate_username(self, value):
-        if value == "me":
-            raise ValidationError("Никнейм 'me' недопустим")
+    username_validator = UnicodeUsernameValidator()
 
     username = models.CharField(
         verbose_name='Никнейм',
         max_length=const.MAX_NAME_LENGTH,
         unique=True,
         null=True,
-        validators=[username_validator, validate_username]
+        validators=[
+            username_validator,
+            FoodgramUserValidator.validate_username
+        ]
     )
     email = models.EmailField(
         verbose_name='e-mail',
@@ -41,10 +40,6 @@ class FoodgramUser(AbstractUser):
     )
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ('username', 'last_name', 'first_name')
-
-    @property
-    def is_admin(self):
-        return self.is_staff or self.is_superuser
 
     class Meta:
         ordering = ('email', 'username',)

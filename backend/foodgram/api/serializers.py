@@ -1,10 +1,8 @@
 # api.serializers
-# Все сериализаторы, кроме User и Follow
-from django.core.validators import MinValueValidator, MaxValueValidator
-# from djoser.serializers import UserSerializer
+# Все сериализаторы
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status
-from foodgram.constants import MAX_AMOUNT_INGREDIENT_VALUE, MIN_VALUE
+from foodgram.constants import MAX_AMOUNT_VALUE, MIN_VALUE, MAX_COOCING_VALUE
 
 from recipes.models import (
     Favorite,
@@ -16,7 +14,6 @@ from recipes.models import (
     User
 )
 from users.models import Follow
-# from rest_framework.validators import UniqueTogetherValidator
 
 
 class FoodgramUserSerializer(serializers.ModelSerializer):
@@ -42,8 +39,7 @@ class FoodgramUserSerializer(serializers.ModelSerializer):
                 and user.follower.filter(
                     user=user,
                     following=obj
-                ).exists()
-                )
+                ).exists())
 
 
 class FollowSerializer(FoodgramUserSerializer):
@@ -66,8 +62,7 @@ class FollowSerializer(FoodgramUserSerializer):
                   'last_name',
                   'is_subscribed',
                   'recipes',
-                  'recipes_count'
-                  )
+                  'recipes_count')
 
     def get_recipes(self, obj):
         """Получение краткой информации о рецептах."""
@@ -126,8 +121,7 @@ class RecipeMinifiedSerializer(serializers.ModelSerializer):
         fields = ('id',
                   'name',
                   'image',
-                  'cooking_time',
-                  )
+                  'cooking_time',)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -152,10 +146,8 @@ class IngredientAddToRecipeSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all(),
                                             write_only=True)
     amount = serializers.IntegerField(
-        validators=[
-            MinValueValidator(MIN_VALUE),
-            MaxValueValidator(MAX_AMOUNT_INGREDIENT_VALUE)
-        ]
+        min_value=MIN_VALUE,
+        max_value=MAX_AMOUNT_VALUE
     )
 
     class Meta:
@@ -172,10 +164,8 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientAddToRecipeSerializer(many=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
-        validators=[
-            MinValueValidator(1),
-            MaxValueValidator(10000)
-        ]
+        min_value=MIN_VALUE,
+        max_value=MAX_COOCING_VALUE
     )
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
@@ -197,14 +187,12 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if not data.get('ingredients'):
-            raise serializers.ValidationError(
-                'Add at least one ingredient'
-            )
+            raise serializers.ValidationError('Добавьте хотя бы 1 ингредиент')
         ingredients = [ingredient['id'] for ingredient in data['ingredients']]
         # Need to use key because OrderedDict is not hashable
         if len(ingredients) != len(set(ingredients)):
             raise serializers.ValidationError(
-                'Ingredients can\'t repeat'
+                'Ингредиенты не могут повторяться'
             )
         return data
 
@@ -259,8 +247,7 @@ class IngredientsDetailForRecipeSerializer(serializers.ModelSerializer):
     Сериализатор для получения информации ингредиента в рецепте.
     """
 
-    id = serializers.PrimaryKeyRelatedField(
-        read_only=True,
+    id = serializers.ReadOnlyField(
         source='ingredient.id'
     )
     name = serializers.CharField(
@@ -287,7 +274,8 @@ class GetRecipeDetailSerializer(serializers.ModelSerializer):
     ingredients = IngredientsDetailForRecipeSerializer(
         many=True,
         read_only=True,
-        source='recipe_ingredients')
+        source='recipe_ingredient'
+    )
     image = Base64ImageField()
     is_favorited = serializers.BooleanField(read_only=True)
     is_in_shopping_cart = serializers.BooleanField(read_only=True)
@@ -307,31 +295,6 @@ class GetRecipeDetailSerializer(serializers.ModelSerializer):
             'cooking_time',
         )
 
-    def get_ingredients(self, obj):
-        """
-        Достает список ингредиентов из связанной модели.
-        Вовращает полную информации о каждом ингредиенте.
-        """
-        ingredients = RecipeIngredient.objects.filter(recipe=obj)
-        return IngredientsDetailForRecipeSerializer(
-            ingredients,
-            many=True
-        ).data
-
-    # def get_is_favorited(self, obj):
-    #     user = self.context.get('request').user
-    #     return (
-    #         user.is_authenticated
-    #         and user.favorite.filter(recipe=obj).exists()
-    #     )
-
-    # def get_is_in_shopping_cart(self, obj):
-    #     user = self.context.get('request').user
-    #     return (
-    #         user.is_authenticated
-    #         and user.cart.filter(recipe=obj).exists()
-    #     )
-
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     """Сериализатор для корзины."""
@@ -346,6 +309,11 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
                 message='Рецепт уже в корзине.'
             )
         ]
+
+    def to_representation(self, instance):
+        return RecipeMinifiedSerializer(
+            instance.recipe, context=self.context
+        ).data
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -362,5 +330,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
             )
         ]
 
-    # def to_representation(self, instance):
-    #     return RecipeMinifiedSerializer(instance.recipe)
+    def to_representation(self, instance):
+        return RecipeMinifiedSerializer(
+            instance.recipe, context=self.context
+        ).data
