@@ -362,5 +362,5 @@ class FavoriteSerializer(serializers.ModelSerializer):
             )
         ]
 
-    def to_representation(self, instance):
-        return RecipeMinifiedSerializer(instance.recipe)
+    # def to_representation(self, instance):
+    #     return RecipeMinifiedSerializer(instance.recipe)
