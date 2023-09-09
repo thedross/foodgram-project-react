@@ -104,7 +104,8 @@ class Recipe(models.Model):
                 MIN_VALUE, message='Время готовки не может быть меньше 1!'
             ),
             MaxValueValidator(
-                MAX_COOCING_VALUE, message='Время готовки не может быть больше 10 ч!'
+                MAX_COOCING_VALUE,
+                message='Время готовки не может быть больше 10 ч!'
             )
         ],
     )
