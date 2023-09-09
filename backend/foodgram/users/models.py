@@ -3,7 +3,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 
 import foodgram.constants as const
-from users.validators import FoodgramUserValidator
+from users.validators import validate_username
 
 
 class FoodgramUser(AbstractUser):
@@ -22,7 +22,7 @@ class FoodgramUser(AbstractUser):
         null=True,
         validators=[
             username_validator,
-            FoodgramUserValidator.validate_username
+            validate_username
         ]
     )
     email = models.EmailField(

@@ -160,17 +160,18 @@ class RecipeViewset(viewsets.ModelViewSet):
         final_to_buy = ('Ваш список ингредиентов для '
                         'создания всех рецептов из корзины.\n\n')
         final_to_buy += '\n'.join(ingredients_list)
-        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            delete=True, encoding='utf-8'
+        ) as temp_file:
             # Записываем во временный файл
             temp_file.write(final_to_buy.encode())
             temp_file.seek(0)
-
-        return FileResponse(
-            temp_file,
-            as_attachment=True,
-            filename=f'{user.username}_shopping_list_ingredients.txt',
-            content_type='text/plain'
-        )
+            return FileResponse(
+                temp_file,
+                as_attachment=True,
+                filename=f'{user.username}_shopping_list_ingredients.txt',
+                content_type='text/plain'
+            )
 
 
 class FoodgramUsersViewSet(UserViewSet):

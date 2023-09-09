@@ -277,7 +277,7 @@ class GetRecipeDetailSerializer(serializers.ModelSerializer):
         source='recipe_ingredient'
     )
     image = Base64ImageField()
-    is_favorited = serializers.BooleanField(read_only=True)
+    is_favorited = serializers.IntegerField(read_only=True)
     is_in_shopping_cart = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -331,6 +331,6 @@ class FavoriteSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        return RecipeMinifiedSerializer(
+        return GetRecipeDetailSerializer(
             instance.recipe, context=self.context
         ).data
