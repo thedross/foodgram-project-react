@@ -1,6 +1,6 @@
 from django_filters.rest_framework import FilterSet, filters
 
-from recipes.models import Ingredient, Recipe
+from recipes.models import Ingredient, Recipe, Tag
 
 
 class RecipeFilter(FilterSet):
@@ -10,10 +10,13 @@ class RecipeFilter(FilterSet):
         method='method_is_in_shopping_cart')
     is_favorited = filters.BooleanFilter(
         method='method_is_favorited')
-    tags = filters.AllValuesMultipleFilter(
+    # Пришлось использовать предыдущий вариант.
+    # С AllValuesMultiplyFilter не работало.
+    tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
-        lookup_expr='in'
-    )  # In вместо exact по дефолту ищет хотя бы одному совпадению с тегом.
+        to_field_name='slug',
+        queryset=Tag.objects.all(),
+    )
 
     class Meta:
         model = Recipe
