@@ -26,7 +26,7 @@ class FoodgramUserAdmin(UserAdmin):
     @admin.display(description='Рецепты')
     def recipes(self, obj):
         # Count new field
-        return ', '.join([recipe.name for recipe in obj.recipes.all()])
+        return obj.recipes.count()
 
     @admin.display(description='Количество подписчиков')
     def followers(self, obj):

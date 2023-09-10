@@ -2,8 +2,8 @@
 # Все сериализаторы
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status
-from foodgram.constants import MAX_AMOUNT_VALUE, MIN_VALUE, MAX_COOCING_VALUE
 
+from foodgram.constants import MAX_AMOUNT_VALUE, MIN_VALUE, MAX_COOCING_VALUE
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -89,16 +89,18 @@ class FollowModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Follow
+        fields = ('user', 'following')
 
     def validate(self, data):
         """Валидирует самоподписку либо если подписка существует"""
-        user = self.context.get('request').user
-        if self.instance == user:
+        user = data.get('user')
+        author = data.get('following')
+        if author == user:
             raise serializers.ValidationError(
                 detail='Нельзя подписаться на себя.',
                 code=status.HTTP_400_BAD_REQUEST
             )
-        if Follow.objects.filter(following=self.instance, user=user).exists():
+        if Follow.objects.filter(following=author, user=user).exists():
             raise serializers.ValidationError(
                 detail={'error': 'Подписка существует.'},
                 code=status.HTTP_400_BAD_REQUEST
@@ -106,7 +108,7 @@ class FollowModelSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        return FollowSerializer(instance, context=self.context).data
+        return FollowSerializer(instance.following).data
 
 
 class RecipeMinifiedSerializer(serializers.ModelSerializer):

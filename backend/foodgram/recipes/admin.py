@@ -1,7 +1,5 @@
-from typing import Any
 from django.contrib import admin
 from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError
 from django.utils.safestring import mark_safe
 
 from recipes.models import (
@@ -26,7 +24,9 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'author',
         'image',
-        'ingredients_list'
+        'ingredients_list',
+        'get_image',
+        'recipe_is_favorite'
     )
 
     @admin.display(description='Ингредиенты')
@@ -44,7 +44,7 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (RecipeIngredientsInLine,)
     ordering = ('name',)
     list_filter = ('author', 'name', 'tags')
-    readonly_fields = ('recipe_is_favorite',)
+    readonly_fields = ('recipe_is_favorite', 'get_image')
 
     @admin.display(description='Рецепт в избранном')
     def recipe_is_favorite(self, obj):
@@ -52,15 +52,8 @@ class RecipeAdmin(admin.ModelAdmin):
         return obj.favorite.count()
 
     @admin.display(description='Картинка')
-    def image(self, obj):
+    def get_image(self, obj):
         return mark_safe(f'<img src={obj.image.url} width="80" height="60">')
-
-    def save_model(self, request: Any, obj: Any, form: Any, change: Any):
-        # Не смог разобраться - если я добавил в inline min_num=1
-        # То этот метод переопределять избыточно?
-        if not obj.ingredients.exists():
-            raise ValidationError('Добавьте хотя бы один ингредиент!')
-        return super().save_model(request, obj, form, change)
 
 
 @admin.register(RecipeIngredient)

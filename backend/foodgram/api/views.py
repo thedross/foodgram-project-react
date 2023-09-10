@@ -199,11 +199,11 @@ class FoodgramUsersViewSet(UserViewSet):
     )
     def subscribe(self, request, **kwargs):
 
-        following = FoodgramUser.objects.get(id=self.kwargs.get('id'))
-
+        following = self.kwargs.get('id')
         serializer = FollowModelSerializer(
             following,
-            data={'empty': None},
+            data={'user': request.user.id,
+                  'following': following},
             context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
