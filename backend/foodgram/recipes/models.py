@@ -6,7 +6,7 @@ from colorfield.fields import ColorField
 from foodgram.constants import (
     MAX_RECIPES_NAMES_LENGTH,
     MAX_STR_LENGTH,
-    MAX_COOCING_VALUE,
+    MAX_COOKING_VALUE,
     MAX_AMOUNT_VALUE,
     MIN_VALUE,
 )
@@ -104,7 +104,7 @@ class Recipe(models.Model):
                 MIN_VALUE, message='Время готовки не может быть меньше 1!'
             ),
             MaxValueValidator(
-                MAX_COOCING_VALUE,
+                MAX_COOKING_VALUE,
                 message='Время готовки не может быть больше 10 ч!'
             )
         ],

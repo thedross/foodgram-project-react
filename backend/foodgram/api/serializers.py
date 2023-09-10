@@ -3,7 +3,7 @@
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers, status
 
-from foodgram.constants import MAX_AMOUNT_VALUE, MIN_VALUE, MAX_COOCING_VALUE
+from foodgram.constants import MAX_AMOUNT_VALUE, MIN_VALUE, MAX_COOKING_VALUE
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -167,7 +167,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         min_value=MIN_VALUE,
-        max_value=MAX_COOCING_VALUE
+        max_value=MAX_COOKING_VALUE
     )
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
