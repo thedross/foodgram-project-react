@@ -146,7 +146,7 @@ class Ingredient(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('name', 'measurement_unit'),
-                name='Уникальное соответствие названия мере измерения'
+                name='Соответствие названия мере измерения'
             )
         ]
 
@@ -191,7 +191,7 @@ class RecipeIngredient(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('recipe', 'ingredient'),
-                name='Уникальное соответствие ингредиента рецепту'
+                name='Соответствие ингредиента рецепту'
             )
         ]
 
@@ -225,7 +225,7 @@ class UserRecipeBaseModel(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('recipe', 'user'),
-                name='Уникальное соответствие рецепта пользователю в %(class)s'
+                name='Соответствие рецепта пользователю в %(class)s'
             )
         ]
 
