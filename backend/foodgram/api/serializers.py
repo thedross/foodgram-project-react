@@ -108,7 +108,7 @@ class FollowModelSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        return FollowSerializer(instance.following).data
+        return FollowSerializer(instance.following, context=self.context).data
 
 
 class RecipeMinifiedSerializer(serializers.ModelSerializer):
